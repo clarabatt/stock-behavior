@@ -2,6 +2,9 @@ import logging
 import uuid
 from datetime import datetime, timezone
 
+import io
+
+import httpx
 import pandas as pd
 import pytz
 import yfinance as yf
@@ -16,8 +19,10 @@ SP500_COMPANIES_URL = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies
 
 
 def fetch_sp500_companies() -> list[dict]:
-    url = SP500_COMPANIES_URL
-    df = pd.read_html(url, attrs={"id": "constituents"})[0]
+    headers = {"User-Agent": "stock-behavior/1.0 (https://github.com/stock-behavior; educational use)"}
+    response = httpx.get(SP500_COMPANIES_URL, headers=headers, follow_redirects=True, timeout=30)
+    response.raise_for_status()
+    df = pd.read_html(io.StringIO(response.text), attrs={"id": "constituents"})[0]
     return [
         {
             "id": uuid.uuid4(),
@@ -40,8 +45,8 @@ def is_market_open() -> bool:
     return market_open <= now <= market_close
 
 
-def ingest_latest_prices(session: Session) -> int:
-    if not is_market_open():
+def ingest_latest_prices(session: Session, force: bool = False, period: str = "1d") -> int:
+    if not force and not is_market_open():
         logger.debug("Market closed, skipping ingestion")
         return 0
 
@@ -56,10 +61,10 @@ def ingest_latest_prices(session: Session) -> int:
     tickers = [c.ticker for c in companies]
     ticker_to_id = {c.ticker: c.id for c in companies}
 
-    logger.info("Fetching 5m prices for %d tickers", len(tickers))
+    logger.info("Fetching 5m prices (%s) for %d tickers", period, len(tickers))
     raw = yf.download(
         tickers,
-        period="1d",
+        period=period,
         interval="5m",
         group_by="ticker",
         auto_adjust=True,

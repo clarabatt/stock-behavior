@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
 import { router } from '@/router'
 import '@/assets/main.scss'
+import '@/assets/tailwind.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

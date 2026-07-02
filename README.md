@@ -1,3 +1,7 @@
+# Stock Behavior
+
+See the [Project.md](Project.md) for a detailed description of the project, its goals, and the technologies used.
+
 ## Requirements
 
 - [Docker](https://docs.docker.com/get-docker/) — runs the full stack

@@ -2,6 +2,8 @@
 
 > Goal: A full-stack web app for exploring S&P 500 company data, aimed at helping you analyze stock behavior.
 
+[Demonstration](https://drive.google.com/file/d/1QkfwQAUkbLRKq0T8CsI5BhceZY-2HzMf/view?usp=sharing)
+
 ## Must-have
 
 1. **Data ingestion & freshness** — Pull S&P 500 stock price data from some source, and keep it updated as close to real-time as the data source allows.

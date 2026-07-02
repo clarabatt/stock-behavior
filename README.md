@@ -1,13 +1,36 @@
 ## Requirements
 
-- Node.js 18.x
-- Docker
+- [Docker](https://docs.docker.com/get-docker/) — runs the full stack
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) — Python package manager
+- [Node.js](https://nodejs.org/) 20+
 
-## Instructions
+## First-time setup
 
-1. Run `uv sync` from the root of the repo.
-2. Run `npm install` from the `frontend` directory.
-3. Create a `.env` file in the root directory copying the contents of `.env.example`.
-4. Run `make dev` to start the development environment.
+These steps are only needed once to generate the lockfiles that Docker uses during the build.
 
-Frontend will be available at `http://localhost:5173` and backend at `http://localhost:8000`. Swagger docs are available at `http://localhost:8000/docs`.
+```bash
+# 1. Install Python dependencies and generate uv.lock
+uv sync
+
+# 2. Install frontend dependencies and generate package-lock.json
+cd frontend && npm install && cd ..
+
+# 3. Copy the environment file and fill in any required values
+cp .env.example .env
+```
+
+## Running the project
+
+```bash
+make dev
+```
+
+This starts all services via Docker Compose. On first run Docker will build the images, which takes a few minutes.
+
+| Service  | URL                        |
+| -------- | -------------------------- |
+| Frontend | http://localhost:5173      |
+| Backend  | http://localhost:8000      |
+| Swagger  | http://localhost:8000/docs |
+| Database | localhost:5433             |
+| Adminer  | http://localhost:8080      |

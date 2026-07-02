@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { X } from 'lucide-react'
+import { Pencil, Trash2, Plus } from 'lucide-react'
 import {
   AreaChart,
   Area,
@@ -18,12 +18,16 @@ import {
 } from '@/components/ui/chart'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Textarea } from '@/components/ui/textarea'
+import { fetchNotes, createNote, updateNote, deleteNote, type Note } from '@/services/notes'
 import type { DateRange, PriceBar } from '@/types/stocks'
 
 interface Props {
   ticker: string
   onClose: () => void
+  onNotesChange?: () => void
 }
 
 interface ChartPoint {
@@ -47,10 +51,16 @@ function formatTs(epochMs: number): string {
   return new Date(epochMs).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-function labelFormatter(_label: ReactNode, payload: ReadonlyArray<{ payload?: ChartPoint }>): ReactNode {
-  const ts = payload[0]?.payload?.ts
-  if (typeof ts !== 'number') return ''
-  return new Date(ts).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
+function formatTime(epochMs: number): string {
+  return new Date(epochMs).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+}
+
+function aggregateToDaily(bars: ChartPoint[]): ChartPoint[] {
+  const byDate = new Map<string, ChartPoint>()
+  for (const bar of bars) {
+    byDate.set(new Date(bar.ts).toISOString().slice(0, 10), bar)
+  }
+  return Array.from(byDate.values())
 }
 
 function tooltipFormatter(value: number | string | readonly (number | string)[] | undefined): ReactNode {
@@ -62,11 +72,49 @@ const chartConfig = {
   close: { label: 'Price', color: '#3b82f6' },
 } satisfies ChartConfig
 
-export function ChartPanel({ ticker, onClose }: Props) {
+function today(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+interface NoteCardProps {
+  note: Note
+  onEdit: (note: Note) => void
+  onDelete: (id: string) => void
+}
+
+function NoteCard({ note, onEdit, onDelete }: NoteCardProps) {
+  return (
+    <div className="rounded-md bg-muted/50 p-2.5 text-sm">
+      <div className="flex items-center justify-between mb-1">
+        <span className="text-xs text-muted-foreground font-mono">{note.date}</span>
+        <div className="flex gap-0.5">
+          <Button size="icon-xs" variant="ghost" onClick={() => onEdit(note)}>
+            <Pencil className="h-3 w-3" />
+          </Button>
+          <Button size="icon-xs" variant="ghost" onClick={() => onDelete(note.id)}>
+            <Trash2 className="h-3 w-3" />
+          </Button>
+        </div>
+      </div>
+      <p className="whitespace-pre-wrap text-sm leading-snug">{note.body}</p>
+    </div>
+  )
+}
+
+export function ChartPanel({ ticker, onNotesChange }: Props) {
   const [dateRange, setDateRange] = useState<DateRange>('1M')
   const [chartData, setChartData] = useState<ChartPoint[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const [notes, setNotes] = useState<Note[]>([])
+  const [notesLoading, setNotesLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+  const [formDate, setFormDate] = useState(today())
+  const [formBody, setFormBody] = useState('')
+  const [formError, setFormError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -81,7 +129,8 @@ export function ChartPanel({ ticker, onClose }: Props) {
       })
       .then(bars => {
         if (cancelled) return
-        setChartData(bars.map(b => ({ ts: new Date(b.timestamp).getTime(), close: b.close })))
+        const points = bars.map(b => ({ ts: new Date(b.timestamp).getTime(), close: b.close }))
+        setChartData(dateRange === '1M' || dateRange === '3M' ? aggregateToDaily(points) : points)
       })
       .catch(err => {
         if (!cancelled) setError((err as Error).message)
@@ -92,6 +141,95 @@ export function ChartPanel({ ticker, onClose }: Props) {
 
     return () => { cancelled = true }
   }, [ticker, dateRange])
+
+  useEffect(() => {
+    let cancelled = false
+    setNotesLoading(true)
+    fetchNotes(ticker)
+      .then(data => { if (!cancelled) setNotes(data) })
+      .catch(console.error)
+      .finally(() => { if (!cancelled) setNotesLoading(false) })
+    return () => { cancelled = true }
+  }, [ticker])
+
+  function openAddForm(date?: string) {
+    setEditingNoteId(null)
+    setFormDate(date ?? today())
+    setFormBody('')
+    setFormError(null)
+    setShowForm(true)
+  }
+
+  function handleChartClick(data: { activeLabel?: string | number }) {
+    const ts = Number(data?.activeLabel)
+    if (!ts || isNaN(ts)) return
+    const date = new Date(ts).toISOString().slice(0, 10)
+    if (showForm && !editingNoteId) {
+      setFormDate(date)
+    } else if (!showForm) {
+      openAddForm(date)
+    }
+  }
+
+  function openEditForm(note: Note) {
+    setEditingNoteId(note.id)
+    setFormDate(note.date)
+    setFormBody(note.body)
+    setFormError(null)
+    setShowForm(true)
+  }
+
+  function cancelForm() {
+    setShowForm(false)
+    setEditingNoteId(null)
+    setFormError(null)
+  }
+
+  async function handleSave() {
+    if (!formBody.trim()) {
+      setFormError('Note body cannot be empty.')
+      return
+    }
+    setSaving(true)
+    setFormError(null)
+    try {
+      if (editingNoteId) {
+        const updated = await updateNote(editingNoteId, formBody.trim())
+        setNotes(prev => prev.map(n => n.id === editingNoteId ? updated : n))
+      } else {
+        const created = await createNote(ticker, formDate, formBody.trim())
+        setNotes(prev => [created, ...prev].sort((a, b) => b.date.localeCompare(a.date)))
+        onNotesChange?.()
+      }
+      cancelForm()
+    } catch (err) {
+      const msg = (err as Error).message
+      setFormError(msg === '409' ? 'A note for this date already exists.' : 'Failed to save note.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      await deleteNote(id)
+      setNotes(prev => prev.filter(n => n.id !== id))
+      onNotesChange?.()
+    } catch {
+      // silently ignore — note will still show until refresh
+    }
+  }
+
+  const isIntraday = dateRange === '1D' || dateRange === '1W'
+  const xTickFormatter = isIntraday ? formatTime : formatTs
+  const labelFormatter = (_label: ReactNode, payload: ReadonlyArray<{ payload?: ChartPoint }>): ReactNode => {
+    const ts = payload[0]?.payload?.ts
+    if (typeof ts !== 'number') return ''
+    const opts: Intl.DateTimeFormatOptions = isIntraday
+      ? { month: 'long', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }
+      : { month: 'long', day: 'numeric', year: 'numeric' }
+    return new Date(ts).toLocaleString(undefined, opts)
+  }
 
   const lastClose = chartData[chartData.length - 1]?.close
   const firstClose = chartData[0]?.close
@@ -118,15 +256,12 @@ export function ChartPanel({ ticker, onClose }: Props) {
               key={r}
               variant={dateRange === r ? 'default' : 'ghost'}
               size="sm"
-              className="h-7 px-2 text-xs"
+              className="h-7 cursor-pointer px-2 text-xs"
               onClick={() => setDateRange(r)}
             >
               {r}
             </Button>
           ))}
-          <Button variant="ghost" size="icon" className="h-7 w-7 ml-1" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
         </div>
       </CardHeader>
 
@@ -143,9 +278,9 @@ export function ChartPanel({ ticker, onClose }: Props) {
           </div>
         )}
         {!loading && !error && chartData.length > 0 && (
-          <ChartContainer config={chartConfig} className="h-full w-full">
+          <ChartContainer config={chartConfig} className="h-full w-full cursor-crosshair">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 8 }}>
+              <AreaChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 8 }} onClick={handleChartClick}>
                 <defs>
                   <linearGradient id="fillClose" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="var(--color-close)" stopOpacity={0.3} />
@@ -158,7 +293,7 @@ export function ChartPanel({ ticker, onClose }: Props) {
                   type="number"
                   scale="time"
                   domain={['dataMin', 'dataMax']}
-                  tickFormatter={formatTs}
+                  tickFormatter={xTickFormatter}
                   tick={{ fontSize: 11 }}
                   tickLine={false}
                   axisLine={false}
@@ -192,7 +327,7 @@ export function ChartPanel({ ticker, onClose }: Props) {
                 <Brush
                   dataKey="ts"
                   height={28}
-                  tickFormatter={formatTs}
+                  tickFormatter={xTickFormatter}
                   fill="var(--color-muted)"
                   stroke="var(--color-border)"
                 />
@@ -201,6 +336,60 @@ export function ChartPanel({ ticker, onClose }: Props) {
           </ChartContainer>
         )}
       </CardContent>
+
+      <div className="shrink-0 border-t px-4 py-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium">Notes</span>
+          {!showForm && (
+            <Button size="xs" variant="outline" onClick={openAddForm}>
+              <Plus className="h-3 w-3 mr-1" />
+              Add note
+            </Button>
+          )}
+        </div>
+
+        {showForm && (
+          <div className="flex flex-col gap-2 mb-3">
+            <Input
+              type="date"
+              value={formDate}
+              onChange={e => setFormDate(e.target.value)}
+              disabled={!!editingNoteId}
+            />
+            <Textarea
+              value={formBody}
+              onChange={e => setFormBody(e.target.value)}
+              placeholder="Record your hypothesis…"
+              rows={3}
+            />
+            {formError && <p className="text-xs text-destructive">{formError}</p>}
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleSave} disabled={saving}>
+                {saving ? 'Saving…' : 'Save'}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={cancelForm} disabled={saving}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2 max-h-40 overflow-auto">
+          {notesLoading
+            ? <Skeleton className="h-10 w-full" />
+            : notes.length === 0 && !showForm
+              ? <p className="text-xs text-muted-foreground">No notes yet.</p>
+              : notes.map(note => (
+                  <NoteCard
+                    key={note.id}
+                    note={note}
+                    onEdit={openEditForm}
+                    onDelete={handleDelete}
+                  />
+                ))
+          }
+        </div>
+      </div>
     </Card>
   )
 }

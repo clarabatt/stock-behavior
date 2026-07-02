@@ -1,12 +1,7 @@
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 import { Header } from '@/components/Header'
 
 export default function App() {
-  const { pathname } = useLocation()
-  const isLogin = pathname === '/login'
-
-  if (isLogin) return <Outlet />
-
   return (
     <div className="flex h-screen min-h-0 flex-col">
       <Header />

@@ -1,12 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { StockTable } from '@/components/StockTable'
 import { ChartPanel } from '@/components/ChartPanel'
+import { fetchNotes } from '@/services/notes'
 import type { LatestPrice, LatestPriceRow } from '@/types/stocks'
 
 export default function HomeView() {
   const [stocks, setStocks] = useState<LatestPriceRow[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null)
+  const [tickersWithNotes, setTickersWithNotes] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetch('/api/prices/latest')
@@ -22,6 +24,16 @@ export default function HomeView() {
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])
+
+  const refreshNoteIndicators = useCallback(() => {
+    fetchNotes()
+      .then(notes => setTickersWithNotes(new Set(notes.map(n => n.ticker))))
+      .catch(console.error)
+  }, [])
+
+  useEffect(() => {
+    refreshNoteIndicators()
+  }, [refreshNoteIndicators])
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 p-6">
@@ -41,11 +53,13 @@ export default function HomeView() {
           loading={loading}
           selectedTicker={selectedTicker}
           onSelect={setSelectedTicker}
+          tickersWithNotes={tickersWithNotes}
         />
         {selectedTicker && (
           <ChartPanel
             ticker={selectedTicker}
             onClose={() => setSelectedTicker(null)}
+            onNotesChange={refreshNoteIndicators}
           />
         )}
       </div>

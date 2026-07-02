@@ -25,6 +25,7 @@ interface Props {
   loading: boolean
   selectedTicker: string | null
   onSelect: (ticker: string) => void
+  tickersWithNotes?: Set<string>
 }
 
 function SortIcon({ column, active, direction }: { column: SortColumn; active: SortColumn; direction: SortDirection }) {
@@ -41,7 +42,7 @@ function ChangeCell({ pct }: { pct: number }) {
   return <Badge variant="secondary" className="font-mono">{formatted}</Badge>
 }
 
-export function StockTable({ stocks, loading, selectedTicker, onSelect }: Props) {
+export function StockTable({ stocks, loading, selectedTicker, onSelect, tickersWithNotes }: Props) {
   const [search, setSearch] = useState('')
   const [sectorFilter, setSectorFilter] = useState('all')
   const [sortColumn, setSortColumn] = useState<SortColumn>('ticker')
@@ -149,7 +150,12 @@ export function StockTable({ stocks, loading, selectedTicker, onSelect }: Props)
                     className={`cursor-pointer ${selectedTicker === s.ticker ? 'bg-muted' : ''}`}
                     onClick={() => onSelect(s.ticker)}
                   >
-                    <TableCell className="font-mono font-semibold">{s.ticker}</TableCell>
+                    <TableCell className="font-mono font-semibold">
+                      {s.ticker}
+                      {tickersWithNotes?.has(s.ticker) && (
+                        <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-blue-500 align-middle" />
+                      )}
+                    </TableCell>
                     <TableCell className="max-w-48 truncate">{s.name}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">{s.sector ?? '—'}</TableCell>
                     <TableCell className="font-mono">${s.close.toFixed(2)}</TableCell>

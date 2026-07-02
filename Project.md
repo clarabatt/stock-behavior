@@ -53,3 +53,9 @@ I used Factories to create test data that are closer to the actual data. I prefe
 - **Frequency**: The backend will pull data on a schedule and store it in a local database. This allows the frontend to query the database for fast responses, rather than hitting the API directly.
 
 - **User Access**: I removed the user access layer to speedup the development. In a real project, I would add user access to allow users to save their notes and have their own data.
+
+### Data Visualization
+
+- I felt the chart a bit truncated because it was showing the same day twice, one for the open price and another for the close price.
+  - When the view is 1 day or 1 week, it maked sense to show all the data points with the time.
+  - When the view is 1 month or more, it makes more sense to show only the close price for each day.

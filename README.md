@@ -7,12 +7,14 @@ See the [Project.md](Project.md) for a detailed description of the project, its 
 - [Docker](https://docs.docker.com/get-docker/) — runs the full stack
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) — Python package manager
 - [Node.js](https://nodejs.org/) 20+
+- [Make](https://www.gnu.org/software/make/) — recommended for running commands
 
 ## First-time setup
 
 These steps are only needed once to generate the lockfiles that Docker uses during the build.
 
 ```bash
+# Mac/Linux
 # 1. Install Python dependencies and generate uv.lock
 uv sync
 
@@ -21,6 +23,18 @@ cd frontend && npm install && cd ..
 
 # 3. Copy the environment file and fill in any required values
 cp .env.example .env
+```
+
+```powershell
+# Windows
+# 1. Install Python dependencies and generate uv.lock
+uv sync
+
+# 2. Install frontend dependencies and generate package-lock.json
+cd frontend; npm install; cd ..
+
+# 3. Copy the environment file and fill in any required values
+copy .env.example .env
 ```
 
 ## Running the project

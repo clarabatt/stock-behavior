@@ -69,3 +69,9 @@ I used Factories to create test data that are closer to the actual data. I prefe
 - I decided to use an approach where the AI agent can create SQL queries to fetch the data from the database and then use the data to answer the user's questions. This approach is more flexible and allows the AI to answer a wider range of questions but it has some trade-offs:
   - It has a higher risk of SQL injection attacks. I put some measures to mitigate this risk, but it is still a risk. In a real project I would analyze the trade-off between flexibility and security and decide which approach to use based on the requirements of the project.
   - Another approach would be to use defined actions that the AI can use to fetch the data from the database. This approach is more secure but it has a limited range of questions that the AI can answer.
+
+- Questions examples:
+  - Which company had the steepest single-day decline?
+  - What did AAPL close at?
+  - Top 5 companies by trading volume this week
+  - Which tech stocks gained the most over the past month?

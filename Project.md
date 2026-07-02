@@ -1,3 +1,5 @@
+# Project: Stock Behavior
+
 > Goal: A full-stack web app for exploring S&P 500 company data, aimed at helping you analyze stock behavior.
 
 ## Must-have
@@ -7,7 +9,7 @@
 3. **Annotated notes** — Let you attach free-text notes to specific (date, company) pairs — essentially a lightweight journaling layer on top of the data, so you can record hypotheses about anomalies (spikes/drops) as you spot them.
 4. **(Bonus) AI-assisted analysis** — An AI layer that can either (a) generate charts/tables from a natural-language request, or (b) answer natural-language questions about the underlying data (e.g., "steepest decline during COVID crash" or "top 10 by market cap 2020–2021").
 
-## Explanation
+## Technology
 
 I used a boilerplate that I've used in my personal projects. My goal was to have a faster start with an structure that I know works well and have a good developer experience. For example I used a docker compose setup that allows me to run the backend, frontend and database in a single command.
 
@@ -15,19 +17,28 @@ I used a boilerplate that I've used in my personal projects. My goal was to have
 
 Technologies used: FastAPI, Pydantic, SQLAlchemy, PostgreSQL and Alembic.
 
+- I like to use Pydantic models to validate the data that is coming from the database and from the API endpoints.
+- Alembic is a must in my opinion to not corrupt the database and to have a version control of the database schema.
+- I added indexes to the stock_prices table to improve the performance of the queries that are used to fetch the data for the frontend.
+
 ### Frontend
 
 Technologies used: React, Vite, TypeScript, TailwindCSS and Chart.js.
 
+- I decided to use classic rest endpoints because of the time constraints. I would have used websockets to push the data to the frontend as soon as it is ingested, instead of having the frontend pull the data from the backend. That would make the data "real-time" and a better user experience.
+- I could use pagination to improve the performance of the list query, but considering the we are only dealing with 500 companies, I decided to keep it simple and return all the data in a single query. Also the frontend is splitting the data in two queries, one for the list and another for the chart, so the data is not too big to be returned in a single query.
+
 ### Tests
 
-I use test on the backend to ensure at least the main functionality is working and to avoid regressions. I also use a test database that is isolated from the main database to avoid polluting the main database with test data.
+I used tests on the backend to ensure at least the main functionality is working and to avoid regressions.
+In the beginning of my projects I avoid frontend tests because the features are not consolidated. I don't want to spend time writing tests for features that will be changed or removed, so I prefer to write frontend tests when the features are more stable.
+The backend tests are a must-have because the backend is where most of the logic is. They are easier to write and maintain, and they are faster to run than frontend tests.
 
-In the beginning of my projects I avoid frontend tests because the features are not consolidated. I don't want to spend time writing tests for features that will be changed or removed. I prefer to write frontend tests when the features are more stable.
+**Test setup**
+I used a test database that is isolated from the main db to avoid polluting it with test data.
+I used Factories to create test data that are closer to the actual data. I prefer to use Factories instead of fixtures because I prefer descriptive tests that are easy to read and self-documenting. It avoids unexpected side effects.
 
-The backend tests are a must-have because the backend is the core of the project and it is where most of the logic is. Also they are easier to write and maintain, and they are faster to run than frontend tests.
-
-I use Factories to create test data that are closer to the actual data. I prefer to use Factories instead of fixtures because I prefer descriptive tests that are easy to read and self-documenting. It avoids unexpected side effects.
+## Features
 
 ### Data Ingestion
 

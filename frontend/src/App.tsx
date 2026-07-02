@@ -1,5 +1,18 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useLocation } from 'react-router-dom'
+import { Header } from '@/components/Header'
 
 export default function App() {
-  return <Outlet />
+  const { pathname } = useLocation()
+  const isLogin = pathname === '/login'
+
+  if (isLogin) return <Outlet />
+
+  return (
+    <div className="flex h-screen min-h-0 flex-col">
+      <Header />
+      <main className="flex-1 min-h-0">
+        <Outlet />
+      </main>
+    </div>
+  )
 }

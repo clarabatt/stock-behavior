@@ -47,8 +47,10 @@ function formatTs(epochMs: number): string {
   return new Date(epochMs).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-function labelFormatter(value: ReactNode): ReactNode {
-  return new Date(value as number).toLocaleString()
+function labelFormatter(_label: ReactNode, payload: ReadonlyArray<{ payload?: ChartPoint }>): ReactNode {
+  const ts = payload[0]?.payload?.ts
+  if (typeof ts !== 'number') return ''
+  return new Date(ts).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
 }
 
 function tooltipFormatter(value: number | string | readonly (number | string)[] | undefined): ReactNode {
@@ -57,7 +59,7 @@ function tooltipFormatter(value: number | string | readonly (number | string)[] 
 }
 
 const chartConfig = {
-  close: { label: 'Price', color: 'var(--color-chart-1)' },
+  close: { label: 'Price', color: '#3b82f6' },
 } satisfies ChartConfig
 
 export function ChartPanel({ ticker, onClose }: Props) {

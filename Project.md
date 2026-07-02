@@ -59,3 +59,7 @@ I used Factories to create test data that are closer to the actual data. I prefe
 - I felt the chart a bit truncated because it was showing the same day twice, one for the open price and another for the close price.
   - When the view is 1 day or 1 week, it maked sense to show all the data points with the time.
   - When the view is 1 month or more, it makes more sense to show only the close price for each day.
+
+### Notes
+
+- You can add notes to specific (date, company) pairs by clicking on the chart or by clicking on the "Add Note" button in the list view. The notes are stored in the database and can be retrieved later. You can also edit and delete notes.

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 def _run_initial() -> None:
     with Session(engine) as session:
-        ingest_latest_prices(session, force=True, period="5d")
+        ingest_latest_prices(session, force=True, period="60d")
 
 
 def _run_periodic() -> None:

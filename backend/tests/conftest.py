@@ -55,6 +55,7 @@ def client(session: Session) -> Generator[TestClient, None, None]:
     mock_scheduler = MagicMock()
     with (
         patch("backend.main.engine", engine),
+        patch("backend.services.ai_analysis.engine", engine),
         patch("backend.main.create_scheduler", return_value=mock_scheduler),
         patch("backend.main.fetch_sp500_companies", return_value=[]),
     ):

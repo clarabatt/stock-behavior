@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { StockTable } from '@/components/StockTable'
 import { ChartPanel } from '@/components/ChartPanel'
+import { AiAssistantPanel } from '@/components/AiAssistantPanel'
 import { fetchNotes } from '@/services/notes'
 import type { LatestPrice, LatestPriceRow } from '@/types/stocks'
 
@@ -63,6 +64,8 @@ export default function HomeView() {
           />
         )}
       </div>
+
+      <AiAssistantPanel />
     </div>
   )
 }

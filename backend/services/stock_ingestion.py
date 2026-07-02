@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 _ET = pytz.timezone("America/New_York")
 SP500_COMPANIES_URL = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+_TICKER_CHUNK_SIZE = 25
 
 
 def fetch_sp500_companies() -> list[dict]:
@@ -45,32 +46,9 @@ def is_market_open() -> bool:
     return market_open <= now <= market_close
 
 
-def ingest_latest_prices(session: Session, force: bool = False, period: str = "1d") -> int:
-    if not force and not is_market_open():
-        logger.debug("Market closed, skipping ingestion")
-        return 0
-
-    company_repo = CompanyRepository(session)
-    price_repo = StockPriceRepository(session)
-
-    companies = company_repo.get_all_active()
-    if not companies:
-        logger.warning("No active companies found, skipping ingestion")
-        return 0
-
-    tickers = [c.ticker for c in companies]
-    ticker_to_id = {c.ticker: c.id for c in companies}
-
-    logger.info("Fetching 5m prices (%s) for %d tickers", period, len(tickers))
-    raw = yf.download(
-        tickers,
-        period=period,
-        interval="5m",
-        group_by="ticker",
-        auto_adjust=True,
-        progress=False,
-    )
-
+def _extract_prices(
+    raw: pd.DataFrame, tickers: list[str], ticker_to_id: dict[str, uuid.UUID]
+) -> list[dict]:
     prices: list[dict] = []
     for ticker in tickers:
         try:
@@ -94,7 +72,43 @@ def ingest_latest_prices(session: Session, force: bool = False, period: str = "1
                     "volume": int(row["Volume"]),
                 }
             )
+    return prices
 
-    price_repo.upsert_batch(prices)
-    logger.info("Ingested %d price rows", len(prices))
-    return len(prices)
+
+def ingest_latest_prices(session: Session, force: bool = False, period: str = "1d") -> int:
+    if not force and not is_market_open():
+        logger.debug("Market closed, skipping ingestion")
+        return 0
+
+    company_repo = CompanyRepository(session)
+    price_repo = StockPriceRepository(session)
+
+    companies = company_repo.get_all_active()
+    if not companies:
+        logger.warning("No active companies found, skipping ingestion")
+        return 0
+
+    ticker_to_id = {c.ticker: c.id for c in companies}
+    tickers = list(ticker_to_id)
+
+    total = 0
+    for i in range(0, len(tickers), _TICKER_CHUNK_SIZE):
+        chunk = tickers[i : i + _TICKER_CHUNK_SIZE]
+        logger.info(
+            "Fetching 5m prices (%s) for tickers %d-%d of %d",
+            period, i + 1, i + len(chunk), len(tickers),
+        )
+        raw = yf.download(
+            chunk,
+            period=period,
+            interval="5m",
+            group_by="ticker",
+            auto_adjust=True,
+            progress=False,
+        )
+        prices = _extract_prices(raw, chunk, ticker_to_id)
+        price_repo.upsert_batch(prices)
+        total += len(prices)
+
+    logger.info("Ingested %d price rows", total)
+    return total

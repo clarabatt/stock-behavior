@@ -25,6 +25,7 @@ services:
       - .env
     environment:
       - DATABASE_URL=postgresql://stock:stock@postgres:5432/stock
+    mem_limit: 1g
     depends_on:
       postgres:
         condition: service_healthy

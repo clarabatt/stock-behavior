@@ -2,7 +2,7 @@ from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class UpdateUserRequest(BaseModel):
@@ -56,3 +56,13 @@ class NoteResponse(BaseModel):
     body: str
     created_at: datetime
     updated_at: datetime
+
+
+class AskQuestionRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=500)
+
+
+class AskQuestionResponse(BaseModel):
+    answer: str
+    sql: str
+    row_count: int

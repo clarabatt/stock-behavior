@@ -35,6 +35,25 @@ This starts all services via Docker Compose. On first run Docker will build the 
 | Database | localhost:5433             |
 | Adminer  | http://localhost:8080      |
 
+## Price data
+
+On startup the backend automatically fetches the last 60 days of 5-minute bars for all S&P 500 companies from Yahoo Finance. This runs in the background and can take a few minutes.
+
+To re-trigger the backfill manually (e.g. after stopping it or resetting the database):
+
+```bash
+docker compose exec backend uv run python -c "
+from sqlmodel import Session
+from backend.database.session import engine
+from backend.services.stock_ingestion import ingest_latest_prices
+with Session(engine) as s:
+    n = ingest_latest_prices(s, force=True, period='60d')
+    print(f'Ingested {n} rows')
+"
+```
+
+While the market is open, the backend also polls for new bars every 5 minutes automatically.
+
 ## Development
 
 To rebuild the Docker images after making structural changes to the backend, run:

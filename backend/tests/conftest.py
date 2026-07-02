@@ -1,5 +1,6 @@
 import os
 from collections.abc import Generator
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -49,8 +50,16 @@ def client(session: Session) -> Generator[TestClient, None, None]:
         yield session
 
     app.dependency_overrides[get_session] = override_get_session
-    with TestClient(app, raise_server_exceptions=True) as c:
-        yield c
+
+    mock_scheduler = MagicMock()
+    with (
+        patch("backend.main.engine", engine),
+        patch("backend.main.create_scheduler", return_value=mock_scheduler),
+        patch("backend.main.fetch_sp500_companies", return_value=[]),
+    ):
+        with TestClient(app, raise_server_exceptions=True) as c:
+            yield c
+
     app.dependency_overrides.pop(get_session, None)
 
 

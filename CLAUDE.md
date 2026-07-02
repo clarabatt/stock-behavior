@@ -68,6 +68,10 @@ TEST_DATABASE_URL=postgresql://stock:stock@localhost:5433/stock_test uv run pyte
 
 Do not add new Zustand stores unless the state is genuinely shared across multiple views.
 
+### Schemas
+
+All Pydantic request/response models live in `backend/schemas.py`. Never define them inside router files.
+
 ### General
 
 - No comments unless the _why_ is non-obvious. Don't comment what the code already says.

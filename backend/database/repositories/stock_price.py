@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 
+from sqlalchemy import true
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import aliased
 from sqlmodel import Session, select
@@ -24,17 +25,19 @@ class StockPriceRepository(BaseRepository[StockPrice, uuid.UUID]):
         self.session.commit()
 
     def get_latest_per_company(self) -> list[tuple[Company, StockPrice]]:
-        # DISTINCT ON uses ix_stock_prices_company_timestamp_desc to read one row per company
         latest_subq = (
             select(StockPrice)
-            .distinct(StockPrice.company_id)
-            .order_by(StockPrice.company_id, StockPrice.timestamp.desc())
+            .where(StockPrice.company_id == Company.id)
+            .order_by(StockPrice.timestamp.desc())
+            .limit(1)
+            .correlate(Company)
             .subquery()
+            .lateral()
         )
         sp = aliased(StockPrice, latest_subq)
         stmt = (
             select(Company, sp)
-            .join(sp, Company.id == sp.company_id)
+            .join(sp, true())
             .order_by(Company.ticker)
         )
         return list(self.session.exec(stmt).all())

@@ -22,7 +22,6 @@ def seed() -> None:
         if not user:
             user = User(
                 email="dev@stock.local",
-                google_sub="dev-seed-google-sub-001",
                 full_name="Dev User",
                 is_active=True,
             )

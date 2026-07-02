@@ -34,3 +34,13 @@ This starts all services via Docker Compose. On first run Docker will build the 
 | Swagger  | http://localhost:8000/docs |
 | Database | localhost:5433             |
 | Adminer  | http://localhost:8080      |
+
+## Development
+
+To rebuild the Docker images after making structural changes to the backend, run:
+
+```bash
+docker compose up -d --build
+```
+
+Structural changes include adding new dependencies, changing the database schema, or modifying the Dockerfile.

@@ -1,8 +1,9 @@
 import uuid
+from datetime import date as PyDate
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import BigInteger, DateTime, UniqueConstraint
+from sqlalchemy import BigInteger, DateTime, Text, UniqueConstraint
 from sqlmodel import Column, Field, SQLModel
 
 
@@ -36,7 +37,6 @@ class User(SQLModel, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     email: str = Field(unique=True, index=True)
-    google_sub: str = Field(unique=True, index=True)
     full_name: str
     picture_url: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -44,8 +44,18 @@ class User(SQLModel, table=True):
     is_active: bool = Field(default=True)
 
 
-class OAuthState(SQLModel, table=True):
-    __tablename__ = "oauth_states"
+class AnnotatedNote(SQLModel, table=True):
+    __tablename__ = "annotated_notes"
+    __table_args__ = (
+        UniqueConstraint("user_id", "company_id", "date", name="uq_notes_user_company_date"),
+    )
 
-    state: str = Field(primary_key=True)
-    expires_at: datetime
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.id", index=True)
+    company_id: uuid.UUID = Field(foreign_key="companies.id", index=True)
+    date: PyDate = Field(index=True)
+    body: str = Field(sa_column=Column(Text, nullable=False))
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+

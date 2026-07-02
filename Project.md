@@ -20,6 +20,8 @@ Technologies used: FastAPI, Pydantic, SQLAlchemy, PostgreSQL and Alembic.
 - I like to use Pydantic models to validate the data that is coming from the database and from the API endpoints.
 - Alembic is a must in my opinion to not corrupt the database and to have a version control of the database schema.
 - I added indexes to the stock_prices table to improve the performance of the queries that are used to fetch the data for the frontend.
+- I used a repository pattern to separate the database access logic from the business logic.
+- The app is simple, so no need to separate in more layers. Routes, Services and Repositories are enough to have a clean architecture. I prefer to keep it simple and not over-engineer the app.
 
 ### Frontend
 

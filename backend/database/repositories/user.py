@@ -14,9 +14,6 @@ class UserRepository(BaseRepository[User, uuid.UUID]):
     def get_by_email(self, email: str) -> Optional[User]:
         return self.session.exec(select(User).where(User.email == email)).first()
 
-    def get_by_google_sub(self, sub: str) -> Optional[User]:
-        return self.session.exec(select(User).where(User.google_sub == sub)).first()
-
     def get_active(self, user_id: uuid.UUID) -> Optional[User]:
         return self.session.exec(
             select(User).where(User.id == user_id, User.is_active == True)

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 from uuid import UUID
 
@@ -36,3 +36,23 @@ class PriceBarResponse(BaseModel):
     low: float
     close: float
     volume: int
+
+
+class NoteCreate(BaseModel):
+    ticker: str
+    date: date
+    body: str
+
+
+class NoteUpdate(BaseModel):
+    body: str
+
+
+class NoteResponse(BaseModel):
+    id: UUID
+    ticker: str
+    company_name: str
+    date: date
+    body: str
+    created_at: datetime
+    updated_at: datetime

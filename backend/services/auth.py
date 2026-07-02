@@ -1,53 +1,17 @@
-from datetime import datetime, timedelta
-from typing import Optional
+from fastapi import Depends
+from sqlmodel import Session, select
 
-import jwt
-from fastapi import Cookie, Depends, HTTPException, status
-from sqlmodel import Session
-
-from backend.config import settings
 from backend.database.models import User
 from backend.database.session import get_session
 
-_ALGORITHM = "HS256"
+DEV_EMAIL = "dev@stock.local"
 
 
-def create_session_token(user_id: str) -> str:
-    payload = {
-        "sub": user_id,
-        "exp": datetime.utcnow() + timedelta(days=settings.session_days),
-    }
-    return jwt.encode(payload, settings.secret_key, algorithm=_ALGORITHM)
-
-
-def decode_session_token(token: str) -> str:
-    try:
-        payload = jwt.decode(token, settings.secret_key, algorithms=[_ALGORITHM])
-        return payload["sub"]
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid session")
-
-
-def get_current_user(
-    session: str = Cookie(default=None, alias="session"),
-    db: Session = Depends(get_session),
-) -> User:
-    if not session:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    user_id = decode_session_token(session)
-    user = db.get(User, user_id)
-    if not user or not user.is_active:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+def get_current_user(session: Session = Depends(get_session)) -> User:
+    user = session.exec(select(User).where(User.email == DEV_EMAIL)).first()
+    if not user:
+        user = User(email=DEV_EMAIL, full_name="Dev User", is_active=True)
+        session.add(user)
+        session.commit()
+        session.refresh(user)
     return user
-
-
-def get_optional_user(
-    session: Optional[str] = Cookie(default=None, alias="session"),
-    db: Session = Depends(get_session),
-) -> Optional[User]:
-    if not session:
-        return None
-    try:
-        return get_current_user(session=session, db=db)
-    except HTTPException:
-        return None

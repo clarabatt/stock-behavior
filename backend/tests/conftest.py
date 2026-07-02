@@ -6,10 +6,11 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine, text
 
-from backend.services.auth import create_session_token
 from backend.database import models as _models  # noqa: F401 — registers all SQLModel tables
+from backend.database.models import User
 from backend.database.session import get_session
 from backend.main import app
+from backend.services.auth import DEV_EMAIL
 
 pytest_plugins = ["backend.tests.factories"]
 
@@ -64,7 +65,9 @@ def client(session: Session) -> Generator[TestClient, None, None]:
 
 
 @pytest.fixture
-def session_cookie():
-    def _make(user_id: str) -> str:
-        return create_session_token(user_id)
-    return _make
+def dev_user(session: Session) -> User:
+    user = User(email=DEV_EMAIL, full_name="Dev User", is_active=True)
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return user

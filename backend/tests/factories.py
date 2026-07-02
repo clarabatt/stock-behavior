@@ -1,10 +1,10 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import pytest
 from sqlmodel import Session
 
-from backend.database.models import Company, StockPrice, User
+from backend.database.models import AnnotatedNote, Company, StockPrice, User
 
 
 @pytest.fixture
@@ -12,7 +12,6 @@ def UserFactory(session: Session):
     def factory(**kwargs) -> User:
         user = User(
             email=kwargs.get("email", f"user-{uuid.uuid4()}@example.com"),
-            google_sub=kwargs.get("google_sub", str(uuid.uuid4())),
             full_name=kwargs.get("full_name", "Test User"),
             picture_url=kwargs.get("picture_url", None),
             is_active=kwargs.get("is_active", True),
@@ -59,5 +58,22 @@ def StockPriceFactory(session: Session):
         session.commit()
         session.refresh(price)
         return price
+
+    return factory
+
+
+@pytest.fixture
+def NoteFactory(session: Session):
+    def factory(user: User, company: Company, **kwargs) -> AnnotatedNote:
+        note = AnnotatedNote(
+            user_id=user.id,
+            company_id=company.id,
+            date=kwargs.get("date", date(2026, 7, 2)),
+            body=kwargs.get("body", "Test note"),
+        )
+        session.add(note)
+        session.commit()
+        session.refresh(note)
+        return note
 
     return factory

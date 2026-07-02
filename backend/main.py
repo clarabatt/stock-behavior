@@ -24,7 +24,7 @@ class SPAStaticFiles(StaticFiles):
 from backend.config import settings
 from backend.database.repositories import CompanyRepository
 from backend.database.session import engine
-from backend.routers import auth, users, dev, stocks
+from backend.routers import notes, stocks, users
 from backend.services.scheduler import create_scheduler
 from backend.services.stock_ingestion import fetch_sp500_companies
 
@@ -62,12 +62,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(stocks.router, prefix="/api", tags=["stocks"])
-
-if settings.dev_mode:
-    app.include_router(dev.router, prefix="/api/dev", tags=["dev"])
+app.include_router(notes.router, prefix="/api", tags=["notes"])
 
 
 @app.get("/health")
